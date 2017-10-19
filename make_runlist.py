@@ -86,7 +86,7 @@ def write_spe_lists(write = False):
     print("Number of runs and most recent run of each type")
     print("blank" , len(spe_blank), max(spe_blank))
     print("bottom", len(spe_bottom), max(spe_bottom))
-    print("topbulk", len(spe_topbulk), max(spe_topbulk)
+    print("topbulk", len(spe_topbulk), max(spe_topbulk))
     print("topring", len(spe_topring), max(spe_topring[-1]))
 
     if not (len(spe_blank) == len(spe_bottom) == len(spe_topbulk) == len(spe_topring)):
