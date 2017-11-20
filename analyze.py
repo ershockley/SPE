@@ -3,7 +3,9 @@ matplotlib.use('Agg')
 matplotlib.rc('font', size=16)
 import matplotlib.pyplot as plt
 from matplotlib import cm
+from matplotlib import patches as mpatches
 import re
+import math
 from tqdm import tqdm
 import numpy as np
 from pax.configuration import load_configuration
@@ -20,6 +22,16 @@ excluded_pmts = [1, 12, 26, 34, 62, 65, 79, 86, 88, 102, 118, 130, 134, 135, 148
                  150, 152, 162, 178, 183, 198, 206, 213, 214, 234, 239, 244, 27, 91, 167, 203]
 
 data_dir_base = "./data/"
+
+bottom_runs = []
+bottom_occs = []
+
+topb_runs = []
+topb_occs = []
+
+topring_runs = []
+topring_occs = []
+
 
 def get_channels(run_number):
     # gets list of channel numbers from csv file
@@ -120,6 +132,69 @@ def get_corrections(run_number):
                 corrections.append(float(line[corr_index]))
 
     return channels, corrections
+
+def get_occ(corrections):
+    corr=[]
+    occ_list=[]
+    occ_array=np.array()
+    for i in corrections:
+        real_corr=i[1]
+        for elem in real_corr:
+            corr.append(elem)
+    for i in corr:
+        occ_array=-1 * math.log(i)
+    return occ_array
+
+def plot_occ(run_number, occ_list):
+    #plots occupancies as a function of run number
+
+    #divide runs into three types
+    bottom_run=[]
+    topbulk_run=[]
+    topring_run=[]
+
+    for file, runlist in enumerate(sorted(runlist_files)):
+        runlist = runlist.split('/')[-1].split('_')
+        bottom_run.append(int(runlist[1]))
+        topbulk_run.append(int(runlist[2]))
+        topring_run.append(int(runlist[3][:-4]))
+
+    #data for plotting
+    xaxis=run_number
+    yaxis=occ_list
+
+
+    fig, ax = plt.subplots()
+
+    #base color and label on what kind of run it is
+    for run in run_number:
+        if run in bottom_run:
+            col='r'
+            lab='Bottom Run'
+        elif run in topbulk_run:
+            col='g'
+            lab="Topbulk Run"
+        elif run in topring_run:
+            col='b'
+            lab="Topring Run"
+
+
+    #make legend
+    #botpatch=mpatches.Patch(color='red', label="Bottom Run")
+    #tbpatch=mpatches.Patch(color='green', label="Topbulk Run")
+    #trpatch=mpatches.Patch(color='blue', label="Topring Run")
+
+    #plt.legend(handles=[botpatch, tbpatch, trpatch])
+
+    #set labels
+    ax.set(xlabel='Run Number', ylabel='Occupancy',
+           title='Occupancy as a Function of Run Number')
+
+    # make scatter plot
+    plt.scatter(xaxis, yaxis, color=col, label=lab)
+
+    fig.savefig("occupancy%d.png" % (run_number) )
+    plt.show()
 
 
 def plot_channel(ch, run_number, xlims, ylims = (-100, 500), filedir = ''):

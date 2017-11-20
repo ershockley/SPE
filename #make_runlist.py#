@@ -58,11 +58,11 @@ def write_spe_lists(write = False):
             if any(["topring" in com["text"] or "step_3" in com["text"] or "step 3" in com["text"] or "3.84, 3.84, 3.94" in com["text"] or "topouter" in com['text'] or "TopRing" in com['text'] for com in run["comments"]]):
                 spe_topring.append(run["number"])
                     
-            if any(["bottom" in com["text"] or "step_1" in com["text"] or "step 1" in com["text"] or "3.6, 3.6, 3.7" in com["text"] for com in run["comments"]]):
+            if any(["bottom" in com["text"] or "step_1" in com["text"] or "step 1" in com["text"] or "3.6, 3.6, 3.7" in com["text"] for com in ru[11~0n["comments"]]):
                 spe_bottom.append(run["number"])
             
             spe_runs.append(run["number"])
-
+[11~
     for L in [spe_blank, spe_bottom, spe_topbulk, spe_topring]:
         remove_list = []
         for run in L:
