@@ -46,19 +46,20 @@ def write_spe_lists(write = False):
         # make sure we're only considering the long LED runs 
         if "events_built" not in run["trigger"] or run["trigger"]["events_built"] < 100000:
             continue
-        if run['tags']['name'] == 'gain_step4' 
-            spe_blank.append(run["number"])
+
+        if run['tags'][0]['name'] == 'gain_step4':
+                spe_blank.append(run["number"])
                             
-        if run['tags']['name']=='spe_topbulk':
-            spe_topbulk.append(run["number"])
+        elif run['tags'][0]['name']=='spe_topbulk':
+                spe_topbulk.append(run["number"])
                     
-        if run['tags']['name']=='spe_topring':
-            spe_topring.append(run["number"])
+        elif run['tags'][0]['name']=='spe_topring':
+                spe_topring.append(run["number"])
                     
-        if run['tags']['name']=='spe_bottom':
-            spe_bottom.append(run["number"])
+        elif run['tags'][0]['name']=='spe_bottom':
+                spe_bottom.append(run["number"])
             
-            spe_runs.append(run["number"])
+        spe_runs.append(run["number"])
 
     for L in [spe_blank, spe_bottom, spe_topbulk, spe_topring]:
         remove_list = []
