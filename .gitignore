@@ -3,7 +3,6 @@
 *~
 .ipynb_checkpoints
 *.pyc
-*sbatch*
+sbatch_scripts
 acceptance_data
-data
 logs

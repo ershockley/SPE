@@ -15,7 +15,7 @@ def write_spe_lists(write = False):
              "source.type" : "LED",
 #             "tags" : {"$exists" : True},
              "comments": {"$exists" : True},
-             "number" : {"$gt" : 6731}
+             "$and" : [{"number" : {"$gt" : 6731}}, {"number" : {"$lt" : 12000}}]
             }
     
     cursor = collection.find(query, {"number" : True,
@@ -47,7 +47,13 @@ def write_spe_lists(write = False):
         if "events_built" not in run["trigger"] or run["trigger"]["events_built"] < 100000:
             continue
         
-        if any(["Gain step_4" in com["text"] or "SPE acceptance step_0" in com["text"] or "LED calibration step 4" in com["text"] or "LED calibration, step 4" in com["text"] or "LED Calibration step 4" in com["text"] or "LED Calibration: step 4" in com['text'] or "LED Gain Calibration step4" in com['text'] or "http://wims.univ-savoie.fr/wims/" in com['text'] or "PMT_callibration_step_4" in com["text"] for com in run["comments"]]):
+        if any(["Gain step_4" in com["text"] or "SPE acceptance step_0" in com["text"] or "LED calibration step 4" in com["text"]
+                or "LED calibration, step 4" in com["text"] or "LED Calibration step 4" in com["text"]
+                or "LED Calibration: step 4" in com['text'] or "LED Gain Calibration step4" in com['text']
+                or "http://wims.univ-savoie.fr/wims/" in com['text'] or "PMT_callibration_step_4" in com["text"]
+                or "#gain_step4" in com['text']
+                or "LED calibration: step 4" in com['text']
+                for com in run["comments"]]):
             spe_blank.append(run["number"])
             
         if any(["SPE" in com["text"] for com in run["comments"]]):
