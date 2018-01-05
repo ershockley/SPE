@@ -23,7 +23,7 @@ class SPE:
         self.data = data.copy()
 
         # numpy magic
-        val_to_check = [4, 5, 6, 7, 8, 9, 10, 11]
+        val_to_check = [4, 5, 6, 7, 8, 9, 10]
         big_array = np.ones((248, len(data['bin_centers']), len(val_to_check)))
         occupancy_array = np.ones((248, len(val_to_check)))
         for i, val in enumerate(val_to_check):
@@ -31,9 +31,9 @@ class SPE:
             occupancy_array[:,i] = -1*np.log(self.make_correction(val, 'amplitude'))
         # with systematics
         self.big_array = big_array
-        self.acceptance_by_channel = (np.mean(big_array, axis=2), np.std(big_array, axis=2))
         self.occupancy_by_channel = (np.mean(occupancy_array, axis=1), np.std(occupancy_array, axis=1))
         self.off_channels = np.where(self.occupancy_by_channel[0] < 0.05)[0]
+        self.acceptance_by_channel = (np.mean(big_array, axis=2), np.std(big_array, axis=2))
 
 
     def make_correction(self, val2corr2, space):
@@ -60,7 +60,11 @@ class SPE:
 
     def acceptance(self, val2corr2=6, space='amplitude'):
         residual = self.residual(val2corr2, space)
-        return 1 - residual.cumsum(axis=1) / residual.sum(axis=1)[:, np.newaxis]
+        acc =  1 - residual.cumsum(axis=1) / residual.sum(axis=1)[:, np.newaxis]
+        # clip to prevent TOO unphysical values (<0 or >1 still unphysical)
+        # this is arbitrary
+        return np.clip(acc, -0.1, 1.1)
+
 
 
 ############################################################################################
@@ -111,6 +115,8 @@ def acceptance_fraction(run_number, thresholds):
         frac_array[:,i] = s.big_array[...,i][ch_index, thresholds + bin0]
     acc_frac = np.mean(frac_array, axis=1)
     acc_errs = np.std(frac_array, axis=1)
+    acc_frac[s.off_channels] = 0
+    acc_errs[s.off_channels] = 0
     return acc_frac, acc_errs
 
 
@@ -128,7 +134,7 @@ def acceptance_3runs(bottom_run, topbulk_run, topring_run, thresholds):
     return ret_acc, ret_errs
 
 def acceptance_curve_3runs(bottom_run, topbulk_run, topring_run):
-    ret_acc, ret_errs = np.ones(248), np.ones(248)
+    ret_acc, ret_errs = np.ones((248, 1099)), np.ones((248, 1099))
     run_list = [bottom_run, topbulk_run, topring_run]
     channel_lists = [channel_dict['bottom_channels'],
                      channel_dict['top_bulk'],
@@ -139,9 +145,10 @@ def acceptance_curve_3runs(bottom_run, topbulk_run, topring_run):
             print("Acceptance data does not exist for run %d" % run)
         s = SPE(path)
         frac, errs = s.acceptance_by_channel
-        ret_acc[ch_list] = frac[ch_list]
-        ret_errs[ch_list] = errs[ch_list]
-    return ret_acc, ret_errs
+        ret_acc[ch_list,:] = frac[ch_list,:]
+        ret_errs[ch_list,:] = errs[ch_list,:]
+        x = s.data['bin_centers']
+    return x, ret_acc, ret_errs
 
 def occupancy(run_number):
     path = os.path.join(data_dir_base, 'run_%05d.h5' % run_number)
