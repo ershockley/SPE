@@ -57,6 +57,7 @@ EOF
 # loop over LED_runs, submit jobs that download LED run and do runs spe_acceptance code
 for run in $LED_runs; do
     padded_run=$(printf "%05d" $run)
+    #need to change this next line to $/project/lgrandi/data/run_${padded_run}.h5?
     if [[ -e $workdir/data/run_${padded_run}.h5 ]]; then
 	continue
     fi

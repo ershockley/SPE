@@ -15,7 +15,6 @@ import pandas as pd
 from tqdm import tqdm
 from pax import core
 import multihist
-from analyze import data_dir_base
 import sys
 import os
 import scipy.integrate as integrate
@@ -23,6 +22,10 @@ from runDB import get_name
 
 # loop over LED and noise runs, fill histograms
 rawdata_dir = '/scratch/midway2/ershockley/rawdata/SPE'
+
+#where processed data will go
+
+data_dir_base = '/project/lgrandi/xenon1t/spe_acceptance/data'
 
 # load run into pax
 def get_run(run):
