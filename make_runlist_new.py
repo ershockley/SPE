@@ -1,6 +1,7 @@
 import pymongo
 import os
 import sys
+import datetime
 
 uri = 'mongodb://eb:%s@xenon1t-daq.lngs.infn.it:27017,copslx50.fysik.su.se:27017,zenigata.uchicago.edu:27017/run'
 uri = uri % os.environ.get('MONGO_PASSWORD')
@@ -25,6 +26,8 @@ def write_spe_lists(write = False):
                                      "trigger.events_built" : True,
                                      "_id":False})
     cursor = list(cursor)
+    
+    print(len(cursor))
 
     if not write:
         print("cursor has %d runs" % len(cursor))
@@ -40,6 +43,9 @@ def write_spe_lists(write = False):
 
     # this is an absolute mess, but tries to figure out which runs are which configuration
     for run in cursor:
+        
+        #print(run)
+        #break
         if any(["bad" in t["name"] for t in run["tags"]]):
             continue
         
@@ -123,4 +129,28 @@ if __name__ == '__main__':
         write = False
     write_spe_lists(write)
 
+def get_dates(bottom_runs):
+    query = {"detector": "tpc",
+             "source.type": "LED",
+             "comments": {"$exists": True},
+             "number": {"$gt": 5038},
+             "tags": {"$exists": True}
+             }
 
+    cursor = collection.find(query, {"number": True,
+                                     "data": True,
+                                     "comments": True,
+                                     "tags": True,
+                                     "trigger.events_built": True,
+                                     "_id": False})
+    cursor = list(cursor)
+
+    datedict={}
+
+    for run in cursor:
+        if run["number"] in bottom_runs:
+            datedict[run["number"]]=run["comments"][0]["date"]
+            #rundate=datetime.datetime.strftime(run["tags"][0]["date"], '%x')
+            #datedict[run["number"]]=datetime.datetime.strptime(rundate, '%x')
+
+    return datedict
