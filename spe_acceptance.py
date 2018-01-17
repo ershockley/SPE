@@ -19,6 +19,7 @@ import sys
 import os
 import scipy.integrate as integrate
 from runDB import get_name
+import stat
 
 # loop over LED and noise runs, fill histograms
 rawdata_dir = '/scratch/midway2/ershockley/rawdata/SPE'
@@ -173,6 +174,11 @@ def loop_over_events(LED_num, noise_num):
     del led_array
     return LED_multihist, noise_multihist
 
+#makes files group readable, writable, executable
+def change_permissions(filename):
+    os.setgid('pi-lgrandi')
+    perms=stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP
+    os.chmod(filename, perms)
 
 def write_to_file(filename, LED_multihist, noise_multihist):
     x = LED_multihist.bin_centers()[2]
@@ -192,11 +198,15 @@ def write_to_file(filename, LED_multihist, noise_multihist):
     data['LED_charge'] = list(np.array(LED_charges).T)
     data['noise_amplitude'] = list(np.array(noise_amplitudes).T)
     data['noise_charge'] = list(np.array(noise_charges).T)
-
     filename = os.path.join(data_dir_base, filename)
-    data.to_hdf(filename, key='data')
-    print("Data written to %s" % filename)
-
+    #give the directory and the file the right group permissions
+    if request.user.groups.filter(name__in=['pi-lgrandi']).exists():
+        change_permissions(data_dir_base)
+        change_permissions(filename)
+        data.to_hdf(filename, key='data')
+        print("Data written to %s" % filename)
+    else:
+        print("You aren't in pi-lgrandi")
 
 def main(args):
     # set logging default to INFO, setup plotting stuff
