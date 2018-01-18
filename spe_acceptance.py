@@ -176,8 +176,11 @@ def loop_over_events(LED_num, noise_num):
 
 #makes files group readable, writable, executable
 def change_permissions(filename):
-    os.setgid('pi-lgrandi')
+    #group read, write, execute
     perms=stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP
+    #change group of new file
+    os.chown(filename, 'pi-lgrandi')
+    #change permissions
     os.chmod(filename, perms)
 
 def write_to_file(filename, LED_multihist, noise_multihist):
@@ -201,7 +204,6 @@ def write_to_file(filename, LED_multihist, noise_multihist):
     filename = os.path.join(data_dir_base, filename)
     #give the directory and the file the right group permissions
     if request.user.groups.filter(name__in=['pi-lgrandi']).exists():
-        change_permissions(data_dir_base)
         change_permissions(filename)
         data.to_hdf(filename, key='data')
         print("Data written to %s" % filename)
