@@ -8,8 +8,13 @@ from channel_dict import channel_dict
 import pandas as pd
 import os
 import runDB
+import math
+import scipy.stats as stats
+from scipy.stats import norm
 
-data_dir_base = "./data/"
+
+from spe_acceptance import data_dir_base
+
 
 hax.init()
 
@@ -27,8 +32,9 @@ class SPE:
         big_array = np.ones((248, len(data['bin_centers']), len(val_to_check)))
         occupancy_array = np.ones((248, len(val_to_check)))
         for i, val in enumerate(val_to_check):
+            corr, sigma_corr=self.make_correction(val, 'amplitude')
             big_array[:, :, i] = self.acceptance(val, 'amplitude')
-            occupancy_array[:,i] = -1*np.log(self.make_correction(val, 'amplitude'))
+            occupancy_array[:,i] = -1*np.log(corr)
         # with systematics
         self.big_array = big_array
         self.occupancy_by_channel = (np.mean(occupancy_array, axis=1), np.std(occupancy_array, axis=1))
@@ -39,31 +45,64 @@ class SPE:
     def make_correction(self, val2corr2, space):
         if space not in ['amplitude', 'charge']:
             raise ValueError('must specify amplitude or charge')
-        led = 'LED_%s' % space
-        noise = 'noise_%s' % space
+        led = np.array(self.data['LED_%s' % space].copy())
+        noise = np.array(self.data['noise_%s' % space].copy())
+        sigma_led=np.array([np.sqrt(abs(bin)) for bin in led])
+        sigma_noise=np.array([np.sqrt(abs(bin)) for bin in noise])
         bin2corr2 = np.where(self.data['bin_centers'] == val2corr2 + 0.5)[0][0]
-        led_firstN = self.data[led][:bin2corr2, :].sum(axis=0)
-        noise_firstN = self.data[noise][:bin2corr2, :].sum(axis=0)
-        return led_firstN / noise_firstN
+        led_firstN = led[:bin2corr2, :].sum(axis=0)
+        noise_firstN = noise[:bin2corr2, :].sum(axis=0)
+        corr=led_firstN / noise_firstN
+        sigma_corr=corr*np.sqrt((sigma_led/led)**2 + (sigma_noise/noise)**2)
+        return corr, sigma_corr
 
 
     def residual(self, val2corr2=6, space='amplitude'):
         # subtract noise spectra from LED spectra for all channels
         # correct noise spectra by forcing sum up to val=x to be equal for both noise, led
-        corrections = self.make_correction(val2corr2, space)
+        corrections, sigma_corr = self.make_correction(val2corr2, space)
         led = self.data['LED_%s' % space].copy()
         noise = self.data['noise_%s' % space].copy()
-        noise *= corrections
+        sigma_led=np.array([np.sqrt(abs(bin)) for bin in led])
+        sigma_noise=np.array([np.sqrt(abs(bin)) for bin in noise])
+        corr_noise=noise * corrections
+        sigma_corr_noise=corr_noise*np.sqrt( (sigma_corr/corrections)**2 + (sigma_noise/noise)**2)
         # return transpose so that is subscriptable by channel number
-        return (led - noise).T
-
+        res=(led - noise).T
+        sigma_res=np.array(np.sqrt( sigma_led**2 + sigma_corr_noise**2)).T
+        return res, sigma_res
+     
+    #make lots of acc curves using numpy magic
+    def acc_MC(self, residual, sigma_res, total_curves):
+        new_res=np.zeros((total_curves, len(residual)), dtype=float)
+        new_accs=np.zeros((total_curves, len(residual)), dtype=float)
+        samples=np.zeros((len(residual), total_curves), dtype=float)
+        for b, res in enumerate(residual):
+            mu=res
+            sigma=abs(sigma_res[b])
+            if math.isnan(sigma)==True:
+                new_res[:,b]=mu
+            else:
+                x=np.linspace(mu-3*sigma, mu+3*sigma, num=1000)
+                sample=norm.rvs(loc=mu, scale=sigma, size=total_curves)
+                samples[b]=sample
+            new_res=np.transpose(samples)
+        cs=np.cumsum(new_res, axis=1) 
+        s=np.sum(new_res, axis=1)
+        ns=s[:,np.newaxis] 
+        ratio=cs/ns 
+        ones=np.ones( (total_curves, len(residual))) 
+        new_accs=np.subtract(ones, ratio)
+        new_accs=np.clip(new_accs, -0.1, 1.1)  
+        return new_accs
+        
 
     def acceptance(self, val2corr2=6, space='amplitude'):
-        residual = self.residual(val2corr2, space)
+        residual, sigma_res = self.residual(val2corr2, space)
         acc =  1 - residual.cumsum(axis=1) / residual.sum(axis=1)[:, np.newaxis]
-        # clip to prevent TOO unphysical values (<0 or >1 still unphysical)
-        # this is arbitrary
-        return np.clip(acc, -0.1, 1.1)
+        #clip to prevent unphysical values
+        acc=np.clip(acc, -0.1, 1.1)
+        return acc
 
 
 
@@ -107,16 +146,34 @@ def acceptance_fraction(run_number, thresholds):
     if not os.path.exists(path):
         print("Acceptance data does not exist for run %d" % run_number)
     s = SPE(path)
-    frac_array = np.ones((248, s.big_array.shape[-1]))
+    res, sigma_res=s.residual(6, 'amplitude')
+    frac_array = np.ones((248, s.big_array.shape[-1]))#, len(residual(axis=1)))
     ch_index = np.arange(248)
     thresholds = np.array(thresholds)[:248]
     bin0 = np.where(s.data['bin_centers'] == 0.5)[0][0]
     for i in range(s.big_array.shape[-1]):
         frac_array[:,i] = s.big_array[...,i][ch_index, thresholds + bin0]
     acc_frac = np.mean(frac_array, axis=1)
-    acc_errs = np.std(frac_array, axis=1)
+    sys_errs = np.std(frac_array, axis=1)
     acc_frac[s.off_channels] = 0
-    acc_errs[s.off_channels] = 0
+    sys_errs[s.off_channels] = 0
+    #use MC to find statistical errors
+    acc_errs=np.arange(248)
+    sigma_l=np.zeros((248, len(s.data['bin_centers'])))
+    sigma_u=np.zeros((248, len(s.data['bin_centers'])))
+    for ch in ch_index:
+        s=SPE(path)
+        acc_curves=s.acc_MC(res[ch], sigma_res[ch], 100)
+        
+        sigma_l[ch,:]=np.percentile(acc_curves,16, axis=0)-np.mean(acc_curves, axis=0)
+        sigma_u[ch,:]=np.percentile(acc_curves, 84, axis=0)-np.mean(acc_curves, axis=0)
+        stat_errs=np.array([sigma_l, sigma_u])
+        
+        acc_errs_u=np.sqrt(sys_errs[ch]**2+sigma_l[1]**2)
+        acc_errs_l=np.sqrt(sys_errs[ch]**2+sigma_u[1]**2)
+        np.append(acc_errs, acc_errs_l, axis=0)
+        np.append(acc_errs, acc_errs_u, axis=0)
+                         
     return acc_frac, acc_errs
 
 
@@ -128,7 +185,8 @@ def acceptance_3runs(bottom_run, topbulk_run, topring_run, thresholds):
                      channel_dict['top_bulk'],
                      channel_dict['top_outer_ring']]
     for run, ch_list in zip(run_list, channel_lists):
-        frac, errs = acceptance_fraction(run, thresholds)
+        frac, errs = acceptance_fraction(run, thresholds) #(axis=0)
+        #errs = [acceptance_fraction(run, thresholds)(axis=1), acceptance_fraction(run, thresholds)(axis=2)]
         ret_acc[ch_list] = frac[ch_list]
         ret_errs[ch_list] = errs[ch_list]
     return ret_acc, ret_errs
