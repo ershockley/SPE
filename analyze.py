@@ -157,10 +157,13 @@ def acceptance_fraction(run_number, thresholds):
     sys_errs = np.std(frac_array, axis=1)
     acc_frac[s.off_channels] = 0
     sys_errs[s.off_channels] = 0
+    
     #use MC to find statistical errors
     acc_errs=np.arange(248)
     sigma_l=np.zeros((248, len(s.data['bin_centers'])))
     sigma_u=np.zeros((248, len(s.data['bin_centers'])))
+    acc_errs_l=np.zeros((248, len(s.data['bin_centers'])))
+    acc_errs_u=np.zeros((248, len(s.data['bin_centers'])))
     for ch in ch_index:
         s=SPE(path)
         acc_curves=s.acc_MC(res[ch], sigma_res[ch], 100)
@@ -171,8 +174,8 @@ def acceptance_fraction(run_number, thresholds):
         
         acc_errs_u=np.sqrt(sys_errs[ch]**2+sigma_l[1]**2)
         acc_errs_l=np.sqrt(sys_errs[ch]**2+sigma_u[1]**2)
-        np.append(acc_errs, acc_errs_l, axis=0)
-        np.append(acc_errs, acc_errs_u, axis=0)
+    np.append(acc_errs, acc_errs_l-acc_frac, axis=0)
+    np.append(acc_errs, acc_errs_u-acc_frac, axis=0)
                          
     return acc_frac, acc_errs
 
@@ -185,8 +188,7 @@ def acceptance_3runs(bottom_run, topbulk_run, topring_run, thresholds):
                      channel_dict['top_bulk'],
                      channel_dict['top_outer_ring']]
     for run, ch_list in zip(run_list, channel_lists):
-        frac, errs = acceptance_fraction(run, thresholds) #(axis=0)
-        #errs = [acceptance_fraction(run, thresholds)(axis=1), acceptance_fraction(run, thresholds)(axis=2)]
+        frac, errs = acceptance_fraction(run, thresholds
         ret_acc[ch_list] = frac[ch_list]
         ret_errs[ch_list] = errs[ch_list]
     return ret_acc, ret_errs
