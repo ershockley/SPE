@@ -159,7 +159,7 @@ def acceptance_fraction(run_number, thresholds):
     sys_errs[s.off_channels] = 0
     
     #use MC to find statistical errors
-    acc_errs=np.arange(248)
+    #acc_errs=np.empty( (248, len(s.data['bin_centers']), len(s.data['bin_centers'])) )
     sigma_l=np.zeros((248, len(s.data['bin_centers'])))
     sigma_u=np.zeros((248, len(s.data['bin_centers'])))
     acc_errs_l=np.zeros((248, len(s.data['bin_centers'])))
@@ -172,29 +172,37 @@ def acceptance_fraction(run_number, thresholds):
         sigma_u[ch,:]=np.percentile(acc_curves, 84, axis=0)-np.mean(acc_curves, axis=0)
         stat_errs=np.array([sigma_l, sigma_u])
         
-        acc_errs_u=np.sqrt(sys_errs[ch]**2+sigma_l[1]**2)
-        acc_errs_l=np.sqrt(sys_errs[ch]**2+sigma_u[1]**2)
-    np.append(acc_errs, acc_errs_l-acc_frac, axis=0)
-    np.append(acc_errs, acc_errs_u-acc_frac, axis=0)
+        acc_errs_u[ch]=np.sqrt(sys_errs[ch]**2+np.mean(sigma_l, axis=0)**2)
+        acc_errs_l[ch]=np.sqrt(sys_errs[ch]**2+np.mean(sigma_u, axis=0)**2)
+    
+    acc_errs=np.array( (np.array(ch_index), np.array(acc_errs_l[1]), np.array(acc_errs_u[1])))
+    #for ch1, ch2 in zip(acc_errs_l[0], acc_errs_u[0]):
+     #   acc_errs[0]=ch
+      #  acc_errs[ch1]=acc_errs_l[ch1]
+       # acc_errs[ch2]=acc_errs_u[ch2]
+    #np.append(acc_errs, acc_errs_l[1], axis=1)
+    #np.append(acc_errs, acc_errs_u[1], axis=2)
                          
     return acc_frac, acc_errs
 
 
 def acceptance_3runs(bottom_run, topbulk_run, topring_run, thresholds):
     thresholds = np.array(thresholds)[:248]
-    ret_acc, ret_errs = np.ones(248), np.ones(248)
+    ret_acc, ret_errs_l, ret_errs_u = np.ones(248), np.ones(248), np.ones(248)
     run_list = [bottom_run, topbulk_run, topring_run]
     channel_lists = [channel_dict['bottom_channels'],
                      channel_dict['top_bulk'],
                      channel_dict['top_outer_ring']]
     for run, ch_list in zip(run_list, channel_lists):
-        frac, errs = acceptance_fraction(run, thresholds
+        frac, errs = acceptance_fraction(run, thresholds)
         ret_acc[ch_list] = frac[ch_list]
-        ret_errs[ch_list] = errs[ch_list]
+        ret_errs_l[ch_list] = errs[1][ch_list]
+        ret_errs_u[ch_list] = errs[2][ch_list]
+    ret_errs=[ret_errs_l, ret_errs_u]
     return ret_acc, ret_errs
 
 def acceptance_curve_3runs(bottom_run, topbulk_run, topring_run):
-    ret_acc, ret_errs = np.ones((248, 1099)), np.ones((248, 1099))
+    ret_acc, ret_errs_l, ret_errs_u = np.ones((248, 1099)), np.ones((248, 1099)), np.ones((248, 1099))
     run_list = [bottom_run, topbulk_run, topring_run]
     channel_lists = [channel_dict['bottom_channels'],
                      channel_dict['top_bulk'],
@@ -206,7 +214,9 @@ def acceptance_curve_3runs(bottom_run, topbulk_run, topring_run):
         s = SPE(path)
         frac, errs = s.acceptance_by_channel
         ret_acc[ch_list,:] = frac[ch_list,:]
-        ret_errs[ch_list,:] = errs[ch_list,:]
+        ret_errs_l[ch_list,:] = errs[1][ch_list,:]
+        ret_errs_l[ch_list,:] = errs[2][ch_list,:]
+        ret_errs=[ret_errs_l, ret_errs_u]
         x = s.data['bin_centers']
     return x, ret_acc, ret_errs
 
