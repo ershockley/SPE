@@ -92,11 +92,15 @@ class SPE:
             else:
                 sample=norm.rvs(loc=mu, scale=sigma, size=total_curves)
                 samples[b]=sample
+           
+            
             new_res=np.transpose(samples)
+            
         new_accs =  1 - new_res.cumsum(axis=1) / new_res.sum(axis=1)[:, np.newaxis]
         #clip to prevent unphysical values
         new_acc=np.clip(new_accs, -0.1, 1.1)
-        return new_accs
+                     
+        return new_acc
         
 
     def acceptance(self, val2corr2, space='amplitude'):
