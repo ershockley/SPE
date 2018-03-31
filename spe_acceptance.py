@@ -1,4 +1,4 @@
-#!/project/lgrandi/anaconda3/envs/pax_head/bin/python
+#!/usr/bin/env python
 
 #### takes two arguments ####
 
@@ -20,9 +20,10 @@ import os
 import scipy.integrate as integrate
 from runDB import get_name
 import stat
+import shutil
 
 # loop over LED and noise runs, fill histograms
-rawdata_dir = '/scratch/midway2/ershockley/rawdata/SPE'
+rawdata_dir = '/project/lgrandi/xenon1t/spe_acceptance/rawdata'
 
 #where processed data will go
 
@@ -75,7 +76,7 @@ def loop_over_events(LED_num, noise_num):
     noise_event_generator = get_events(noise_run)
     LED_event_generator = get_events(LED_run)
 
-    n_loop_events = min(LED_events - 1, noise_events - 1)
+    n_loop_events = min(LED_events-1, noise_events-1)
 
     amplitude_bounds = (-100, 1000)
     n_channels = 254
@@ -176,12 +177,11 @@ def loop_over_events(LED_num, noise_num):
 
 #makes files group readable, writable, executable
 def change_permissions(filename):
-    #group read, write, execute
-    perms=stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP
     #change group of new file
-    os.chown(filename, 'pi-lgrandi')
-    #change permissions
-    os.chmod(filename, perms)
+    shutil.chown(filename, group= 'pi-lgrandi')
+    #change permissions)
+    os.system('chmod u+rw %s' %filename)
+    os.system('chmod g+rw %s' %filename)
 
 def write_to_file(filename, LED_multihist, noise_multihist):
     x = LED_multihist.bin_centers()[2]
@@ -203,13 +203,10 @@ def write_to_file(filename, LED_multihist, noise_multihist):
     data['noise_charge'] = list(np.array(noise_charges).T)
     filename = os.path.join(data_dir_base, filename)
     #give the directory and the file the right group permissions
-    if request.user.groups.filter(name__in=['pi-lgrandi']).exists():
-        change_permissions(filename)
-        data.to_hdf(filename, key='data')
-        print("Data written to %s" % filename)
-    else:
-        print("You aren't in pi-lgrandi")
-
+    data.to_hdf(filename, key='data')
+    change_permissions(filename)
+    print("Data written to %s" % filename)
+    
 def main(args):
     # set logging default to INFO, setup plotting stuff
     logging.basicConfig(level=logging.INFO)

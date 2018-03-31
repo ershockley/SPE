@@ -34,8 +34,6 @@ class SPE:
         for i, val in enumerate(val_to_check):
             corr, sigma_corr=self.make_correction(val, 'amplitude')
             big_array[: , : , i] = self.acceptance(val, 'amplitude')
-            #print('ch index, thresholds+bin0: ',[ch_index, thresholds + bin0])
-            #print('ba acc: ', big_array[...,i][ch_index, thresholds + bin0])
             occupancy_array[:,i] = -1*np.log(corr)
         # with systematics
         self.big_array = big_array
@@ -65,7 +63,7 @@ class SPE:
         # subtract noise spectra from LED spectra for all channels
         # correct noise spectra by forcing sum up to val=x to be equal for both noise, led
         corrections, sigma_corr = self.make_correction(val2corr2, space)
-        #transpose so subscript by channel
+        
         led = self.data['LED_%s' % space].copy()
         noise = self.data['noise_%s' % space].copy()
         sigma_led=np.sqrt(led)
@@ -135,12 +133,13 @@ class SPE:
     
     
 class ch_data:
-    def __init__(self, runlist, date, acc, acc_errs_l, acc_errs_u, acc_sys, acc_stat, occ, occ_sys, occ_stat):
+    def __init__(self, runlist, date, acc, on_acc, acc_errs_l, acc_errs_u, acc_sys, acc_stat, occ, occ_sys, occ_stat):
         self.runlist=runlist
         self.date=date
         
         #all of the following are subscriptable by channel
         self.acc=acc
+        self.on_acc=on_acc
         self.acc_errs_l=acc_errs_l
         self.acc_errs_u=acc_errs_u
         self.acc_sys=acc_sys
@@ -237,7 +236,7 @@ def acceptance_3runs(bottom_run, topbulk_run, topring_run, thresholds):
 
 
 def acceptance_curve_3runs(bottom_run, topbulk_run, topring_run):
-    ret_acc, ret_errs_l, ret_errs_u = np.ones((248, 1099)), np.ones((248, 1099)), np.ones((248, 1099))
+    ret_acc, ret_errs= np.ones((248, 1099)), np.ones((248, 1099))
     run_list = [bottom_run, topbulk_run, topring_run]
     channel_lists = [channel_dict['bottom_channels'],
                      channel_dict['top_bulk'],
@@ -248,13 +247,11 @@ def acceptance_curve_3runs(bottom_run, topbulk_run, topring_run):
             print("Acceptance data does not exist for run %d" % run)
         s = SPE(path)
         frac, errs = s.acceptance_by_channel
-        print(frac)
         ret_acc[ch_list,:] = frac[ch_list,:]
-        ret_errs_l[ch_list,:] = errs[0][ch_list,:]
-        ret_errs_l[ch_list,:] = errs[1][ch_list,:]
-        ret_errs=[ret_errs_l, ret_errs_u]
+        ret_errs[ch_list,:] = errs[ch_list,:]
+        ret_errs=errs
         x = s.data['bin_centers']
-    return x, ret_acc, ret_errs
+    return x, ret_acc , ret_errs
 
 #add stats errors to occ, use log of corr
 def occupancy(run_number):
