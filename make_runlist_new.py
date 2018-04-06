@@ -43,9 +43,6 @@ def write_spe_lists(write = False):
 
     # this is an absolute mess, but tries to figure out which runs are which configuration
     for run in cursor:
-        
-        #print(run)
-        #break
         if any(["bad" in t["name"] for t in run["tags"]]):
             continue
         
