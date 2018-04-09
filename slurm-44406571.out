@@ -1,0 +1,26 @@
+noise run: 14732
+LED runs: 14733
+14734
+14735
+Activate: ROOT has been sourced. Environment settings are ready. 
+ROOTSYS=/project/lgrandi/anaconda3/envs/pax_head
+EOF > sbatch_scripts/14732.sbatch
+#!/bin/bash
+#SBATCH --job-name=spe_14732
+#SBATCH --output=/home/awalsh272/SPE/SPE/logs/run_14732.log
+#SBATCH --error=/home/awalsh272/SPE/SPE/logs/run_14732.log
+#SBATCH --account=pi-lgrandi
+#SBATCH --qos=xenon1t
+#SBATCH --partition=xenon1t
+export PATH=/project/lgrandi/anaconda3/bin:$PATH
+source activate pax_head
+if [[ ! -e /project/lgrandi/xenon1t/spe_acceptance/rawdata/171124_1336 ]]; then
+    source /home/ershockley/setup_rucio.sh
+    #source /project/lgrandi/general_scripts/setup_rucio.sh
+    mkdir /project/lgrandi/xenon1t/spe_acceptance/rawdata/171124_1336
+    echo "rucio download x1t_SR001_171124_1336_tpc:raw --dir /project/lgrandi/xenon1t/spe_acceptance/rawdata/171124_1336 --no-subdir"
+    rucio download x1t_SR001_171124_1336_tpc:raw --dir /project/lgrandi/xenon1t/spe_acceptance/rawdata/171124_1336 --no-subdir 
+fi
+sbatch: error: This does not look like a batch script.  The first
+sbatch: error: line must start with #! followed by the path to an interpreter.
+sbatch: error: For instance: #!/bin/sh

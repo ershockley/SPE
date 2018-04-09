@@ -1,0 +1,15 @@
+head: cannot open `runlist_16984_16985_16986.txt' for reading: No such file or directory
+tail: cannot open `runlist_16984_16985_16986.txt' for reading: No such file or directory
+noise run: 
+LED runs: 
+Activate: ROOT has been sourced. Environment settings are ready. 
+ROOTSYS=/project/lgrandi/anaconda3/envs/pax_v6.8.0
+Traceback (most recent call last):
+  File "get_rucio_did.py", line 33, in <module>
+    print(get_did(int(sys.argv[1])))
+IndexError: list index out of range
+Traceback (most recent call last):
+  File "get_name.py", line 25, in <module>
+    print(get_name(int(sys.argv[1])))
+IndexError: list index out of range
+Submitted batch job 44346160

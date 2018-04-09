@@ -1,7 +1,7 @@
 #!/bin/bash
 
-for txt in $(ls runlists/runlist_9*txt)
+for txt in $(ls ./runlists/runlist_*txt)
 do
     ./submit_jobs.sh $txt
-    sleep 600
+    sleep 300
 done
