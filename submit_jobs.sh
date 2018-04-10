@@ -49,6 +49,7 @@ source activate pax_v6.8.0
 if [[ ! -e $tmp_dir/${noise_name} ]]; then
     source /project/lgrandi/general_scripts/setup_rucio.sh
     mkdir $tmp_dir/${noise_name}
+    chgrp pi-lgrandi $tmp_dir/${noise_name}
     echo "rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir"
     rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir
 fi
@@ -80,6 +81,7 @@ if [[ ! -e $tmp_dir/$name ]]; then
     tmp_pypath=$PYTHONPATH
     source /project/lgrandi/general_scripts/setup_rucio.sh
     mkdir $tmp_dir/$name
+    chgrp pi-lgrandi $tmp_dir/$name
     echo "rucio download $DID --dir $tmp_dir/$name --no-subdir"
     rucio download $DID --dir $tmp_dir/$name --no-subdir
     export PYTHONPATH=$tmp_pypath
