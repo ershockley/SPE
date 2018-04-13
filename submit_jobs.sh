@@ -23,6 +23,7 @@ echo "noise run: $noise_run"
 echo "LED runs: $LED_runs"
 
 #where we will save the raw data
+#tmp_dir="~/SPE/SPE/rawdata_test"
 tmp_dir="/project/lgrandi/xenon1t/spe_acceptance/rawdata"
 
 # env stuff
@@ -47,9 +48,15 @@ export PATH=/project/lgrandi/anaconda3/bin:\$PATH
 source activate pax_v6.8.0
 
 if [[ ! -e $tmp_dir/${noise_name} ]]; then
+    cd  /cvmfs/xenon.opensciencegrid.org/software/rucio-py27
     source /project/lgrandi/general_scripts/setup_rucio.sh
     mkdir $tmp_dir/${noise_name}
     chgrp pi-lgrandi $tmp_dir/${noise_name}
+    echo "rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir"
+    rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir
+
+elif [[ ! -e $tmp_dir/${noise_name}/*]]; then
+    source /project/lgrandi/general_scripts/setup_rucio.sh
     echo "rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir"
     rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir
 fi
@@ -78,6 +85,7 @@ for run in $LED_runs; do
 export PATH=/project/lgrandi/anaconda3/bin:\$PATH
 
 if [[ ! -e $tmp_dir/$name ]]; then
+    cd  /cvmfs/xenon.openscien\cegrid.org/software/rucio-py27
     tmp_pypath=$PYTHONPATH
     source /project/lgrandi/general_scripts/setup_rucio.sh
     mkdir $tmp_dir/$name
@@ -85,8 +93,15 @@ if [[ ! -e $tmp_dir/$name ]]; then
     echo "rucio download $DID --dir $tmp_dir/$name --no-subdir"
     rucio download $DID --dir $tmp_dir/$name --no-subdir
     export PYTHONPATH=$tmp_pypath
+
+elif [[ ! -e $tmp_dir/$name/*]]; then
+    source /project/lgrandi/general_scripts/setup_rucio.sh
+    echo "rucio download $DID --dir $tmp_dir/$name --no-subdir"
+    rucio download $DID --dir $tmp_dir/$name --no-subdir
+
 fi
 source activate pax_v6.8.0
+cd ~/SPE/SPE
 echo "python $workdir/spe_acceptance.py $run $noise_run"
 python $workdir/spe_acceptance.py $run $noise_run
 EOF

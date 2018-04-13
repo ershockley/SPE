@@ -63,7 +63,12 @@ def write_spe_lists(write = False):
                 spe_bottom.append(run["number"])
             
         spe_runs.append(run["number"])
-
+    
+    
+    
+    #18193 was mislabeled?
+    spe_topring.append(18193)
+    
     for L in [spe_blank, spe_bottom, spe_topbulk, spe_topring]:
         remove_list = []
         for run in L:
@@ -99,7 +104,7 @@ def write_spe_lists(write = False):
 
 
     wrote = []
-    for blank, bot, bulk, ring in zip(spe_blank, spe_bottom, spe_topbulk, spe_topring):
+    for blank, bot, bulk, ring in zip(spe_blank, spe_bottom, spe_topbulk, sorted(spe_topring, reverse=True)):
         if not all([abs(blank - run) < 10 for run in [bot, bulk, ring] ]):
             continue
         filename = "./runlists/runlist_%i_%i_%i.txt" % (bot, bulk, ring)
