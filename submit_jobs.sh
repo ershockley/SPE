@@ -49,13 +49,17 @@ export PATH=/project/lgrandi/anaconda3/bin:\$PATH
 source activate pax_v6.8.0
 
 if [[ ! -e $tmp_dir/${noise_name} ]]; then
-    cd  /cvmfs/xenon.opensciencegrid.org/software/rucio-py27
+    cd /cvmfs
+    cd xenon.opensciencegrid.org
+    cd software
+    cd rucio-py27
+    cd /cvmfs/oasis.opensciencegrid.org/osg/modules/python-2.7.7/bin/python
+    source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
     source /project/lgrandi/general_scripts/setup_rucio.sh
     mkdir $tmp_dir/${noise_name}
     chgrp pi-lgrandi $tmp_dir/${noise_name}
     echo "rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir"
     rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir
-
 fi
 EOF
 
@@ -83,17 +87,18 @@ for run in $LED_runs; do
 export PATH=/project/lgrandi/anaconda3/bin:\$PATH
 
 if [[ ! -e $tmp_dir/$name ]]; then
-    cd  /cvmfs/xenon.openscien\cegrid.org/software/rucio-py27
     tmp_pypath=$PYTHONPATH
+    source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
     source /project/lgrandi/general_scripts/setup_rucio.sh
     mkdir $tmp_dir/$name
     chgrp pi-lgrandi $tmp_dir/$name
     echo "rucio download $DID --dir $tmp_dir/$name --no-subdir"
     rucio download $DID --dir $tmp_dir/$name --no-subdir
     export PYTHONPATH=$tmp_pypath
+
 fi
 source activate pax_dev
-cd ~/SPE/SPE
+
 echo "python $workdir/spe_acceptance.py $run $noise_run"
 python $workdir/spe_acceptance.py $run $noise_run
 EOF

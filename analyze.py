@@ -133,7 +133,7 @@ class SPE:
     
     
 class ch_data:
-    def __init__(self, runlist, date, acc, on_acc, acc_errs_l, acc_errs_u, acc_sys, acc_stat, occ, occ_sys, occ_stat):
+    def __init__(self, runlist, date, acc, on_acc, acc_errs_l, acc_errs_u, acc_sys, acc_stat, occ, on_occ, occ_sys, occ_stat):
         self.runlist=runlist
         self.date=date
         
@@ -145,6 +145,7 @@ class ch_data:
         self.acc_sys=acc_sys
         self.acc_stat=acc_stat
         self.occ=occ
+        self.on_occ=on_occ
         self.occ_sys=occ_sys
         self.occ_stat=occ_stat
         

@@ -65,9 +65,6 @@ def write_spe_lists(write = False):
         spe_runs.append(run["number"])
     
     
-    spe_topring.append(18192)
-    spe_topbulk.remove(18192)
-    
     for L in [spe_blank, spe_bottom, spe_topbulk, spe_topring]:
         remove_list = []
         for run in L:
