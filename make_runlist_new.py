@@ -67,7 +67,9 @@ def write_spe_lists(write = False):
     
     
     #18193 was mislabeled?
-    spe_topring.append(18193)
+    #spe_topring.append(18192)
+    #spe_topbulk.remove(18192)
+    #spe_topbulk.append(18191)
     
     for L in [spe_blank, spe_bottom, spe_topbulk, spe_topring]:
         remove_list = []
