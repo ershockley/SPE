@@ -1,8 +1,0 @@
-noise run: 17453
-LED runs: 17454
-17455
-17456
-Deactivate:Unsetting ROOT environment variables..
-Activate: ROOT has been sourced. Environment settings are ready. 
-ROOTSYS=/project/lgrandi/anaconda3/envs/pax_v6.8.0
-Submitted batch job 44338534

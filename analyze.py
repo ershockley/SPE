@@ -91,7 +91,6 @@ class SPE:
                 sample=norm.rvs(loc=mu, scale=sigma, size=total_curves)
                 samples[b]=sample
            
-            
             new_res=np.transpose(samples)
             
         new_accs =  1 - new_res.cumsum(axis=1) / new_res.sum(axis=1)[:, np.newaxis]
@@ -113,24 +112,22 @@ class SPE:
         path = os.path.join(data_dir_base, 'run_%05d.h5' % run_number)
         if not os.path.exists(path):
             print("Acceptance data does not exist for run %d" % run_number)
-        s=SPE(path)
         #initialize error arrays
         sigma_l=np.zeros((248, len(s.data['bin_centers'])))
         sigma_u=np.zeros((248, len(s.data['bin_centers'])))
         ch_index = np.arange(248)
-        res, sigma_res=s.residual(6, 'amplitude')
+        res, sigma_res=self.residual(6, 'amplitude')
         #loop over channels
         for ch in ch_index:
             #make MC acc curves
-            acc_curves=s.acc_MC(res[ch], sigma_res[ch], 1000)
+            acc_curves=self.acc_MC(res[ch], sigma_res[ch], 1000)
             
             #stats errors from MC
-            sigma_l[ch,:]=np.percentile(acc_curves,16, axis=0)-np.mean(acc_curves, axis=0)
-            sigma_u[ch,:]=np.percentile(acc_curves, 84, axis=0)-np.mean(acc_curves, axis=0)
-        stat_errs=np.array([sigma_l, sigma_u])
+            sigma_l[ch,:] = np.percentile(acc_curves,16, axis=0)-np.mean(acc_curves, axis=0)
+            sigma_u[ch,:] = np.percentile(acc_curves, 84, axis=0)-np.mean(acc_curves, axis=0)
+        stat_errs = np.array([sigma_l, sigma_u])
        
         return stat_errs
-    
     
 class ch_data:
     def __init__(self, runlist, date, acc, on_acc, acc_errs_l, acc_errs_u, acc_sys, acc_stat, occ, on_occ, occ_sys, occ_stat):
@@ -234,7 +231,6 @@ def acceptance_3runs(bottom_run, topbulk_run, topring_run, thresholds):
         
     ret_errs=[ret_errs_l, ret_errs_u]
     return ret_acc, ret_errs, sys_errs, stat_errs
-
 
 def acceptance_curve_3runs(bottom_run, topbulk_run, topring_run):
     ret_acc, ret_errs= np.ones((248, 1099)), np.ones((248, 1099))
@@ -346,7 +342,7 @@ def plot_acceptances(acceptances, output_file):
     plt.suptitle('SPE acceptance fraction', fontsize=20)
     plt.savefig(output_file)
 
-
+    
 def find_threshold(bin_centers, acceptance, acc_frac):
     next_a, next_b = (-99, -99)  # inital nonsense values
     thresh = 0
