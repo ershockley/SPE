@@ -27,7 +27,7 @@ echo "LED runs: $LED_runs"
 tmp_dir="/project/lgrandi/xenon1t/spe_acceptance/rawdata"
 
 # env stuff
-source activate pax_v6.8.0
+source activate pax_dev
 export PYTHONPATH=/project/lgrandi/anaconda3/envs/pax_v6.8.0/bin/python$PYTHONPATH
 noise_DID=$( python get_rucio_did.py $noise_run)
 noise_name=$( python get_name.py $noise_run)
@@ -44,6 +44,7 @@ cat <<EOF > $noise_sbatch
 #SBATCH --qos=xenon1t
 #SBATCH --partition=xenon1t
 
+/home/ershockley/cvmfs_cache_issue.sh
 export PATH=/project/lgrandi/anaconda3/bin:\$PATH
 source activate pax_v6.8.0
 
@@ -55,10 +56,6 @@ if [[ ! -e $tmp_dir/${noise_name} ]]; then
     echo "rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir"
     rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir
 
-elif [[ ! -e $tmp_dir/${noise_name}/*]]; then
-    source /project/lgrandi/general_scripts/setup_rucio.sh
-    echo "rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir"
-    rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir
 fi
 EOF
 
@@ -82,6 +79,7 @@ for run in $LED_runs; do
 #SBATCH --partition=xenon1t
 #SBATCH --mem=25GB
 
+/home/ershockley/cvmfs_cache_issue.sh
 export PATH=/project/lgrandi/anaconda3/bin:\$PATH
 
 if [[ ! -e $tmp_dir/$name ]]; then
@@ -93,14 +91,8 @@ if [[ ! -e $tmp_dir/$name ]]; then
     echo "rucio download $DID --dir $tmp_dir/$name --no-subdir"
     rucio download $DID --dir $tmp_dir/$name --no-subdir
     export PYTHONPATH=$tmp_pypath
-
-elif [[ ! -e $tmp_dir/$name/*]]; then
-    source /project/lgrandi/general_scripts/setup_rucio.sh
-    echo "rucio download $DID --dir $tmp_dir/$name --no-subdir"
-    rucio download $DID --dir $tmp_dir/$name --no-subdir
-
 fi
-source activate pax_v6.8.0
+source activate pax_dev
 cd ~/SPE/SPE
 echo "python $workdir/spe_acceptance.py $run $noise_run"
 python $workdir/spe_acceptance.py $run $noise_run
