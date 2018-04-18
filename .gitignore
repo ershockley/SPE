@@ -6,3 +6,6 @@
 sbatch_scripts
 acceptance_data
 logs
+data
+plots
+runlists
