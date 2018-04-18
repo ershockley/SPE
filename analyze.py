@@ -90,7 +90,6 @@ class SPE:
             else:
                 sample=norm.rvs(loc=mu, scale=sigma, size=total_curves)
                 samples[b]=sample
-           
             
             new_res=np.transpose(samples)
             
@@ -109,20 +108,24 @@ class SPE:
 
     #use MC to find statistical errors
     
-    def MC_errors(self, run_number):
+    def MC_errors(self, run_number, thresholds):
         path = os.path.join(data_dir_base, 'run_%05d.h5' % run_number)
         if not os.path.exists(path):
             print("Acceptance data does not exist for run %d" % run_number)
-        s=SPE(path)
         #initialize error arrays
-        sigma_l=np.zeros((248, len(s.data['bin_centers'])))
-        sigma_u=np.zeros((248, len(s.data['bin_centers'])))
+        bin0 = np.where(self.data['bin_centers'] == 0.5)[0][0]
+        thresholds=np.array(thresholds[:248])
+        t=thresholds+bin0
+        sigma_l=np.zeros((248))#, #len(self.data['bin_centers'])))
+        sigma_u=np.zeros((248))#, #len(self.data['bin_centers'])))
         ch_index = np.arange(248)
-        res, sigma_res=s.residual(6, 'amplitude')
+        res, sigma_res=self.residual(6, 'amplitude')
         #loop over channels
         for ch in ch_index:
             #make MC acc curves
-            acc_curves=s.acc_MC(res[ch], sigma_res[ch], 1000)
+            acc_curves=self.acc_MC(res[ch], sigma_res[ch], 1000)
+            
+            acc_curves_t=acc_curves[ch, t[ch]]
             
             #stats errors from MC
             sigma_l[ch,:]=np.percentile(acc_curves,16, axis=0)-np.mean(acc_curves, axis=0)
@@ -148,8 +151,6 @@ class ch_data:
         self.on_occ=on_occ
         self.occ_sys=occ_sys
         self.occ_stat=occ_stat
-        
-        #self._on_channels = np.where(self.occ > 0.05)[0]
         
         
 
@@ -206,19 +207,19 @@ def acceptance_fraction(run_number, thresholds):
     acc_frac[s.off_channels] = 0
     sys_errs[s.off_channels] = 0
     stat_errs = s.MC_errors(run_number)
-    acc_errs_l=np.zeros((248, len(s.data['bin_centers'])))
-    acc_errs_u=np.zeros((248, len(s.data['bin_centers'])))
+    acc_errs_l=np.zeros((248))#, len(s.data["bin_centers"])))
+    acc_errs_u=np.zeros((248))#, #len(s.data["bin_centers"])))
+    t=thresholds+bin0
     #propagate stats errors with sys errors
     for ch in ch_index:
-        acc_errs_l[ch]=np.sqrt(np.mean(stat_errs[0][ch]**2)+sys_errs[ch]**2)
-        acc_errs_u[ch]=np.sqrt(np.mean(stat_errs[1][ch]**2)+sys_errs[ch]**2)
+        acc_errs_l[ch]=np.sqrt(stat_errs[0, ch, t[ch]]**2+sys_errs[ch]**2)
+        acc_errs_u[ch]=np.sqrt(stat_errs[1, ch, t[ch]]**2+sys_errs[ch]**2)
     acc_errs=np.array([acc_errs_l, acc_errs_u])
-    
-    return acc_frac, acc_errs, sys_errs, stat_errs
+    return acc_frac, acc_errs, sys_errs, stat_errs, t[200]
 
 def acceptance_3runs(bottom_run, topbulk_run, topring_run, thresholds):
     thresholds = np.array(thresholds)[:248]
-    ret_acc, ret_errs_l, ret_errs_u = np.ones(248), np.ones((248, 1099)), np.ones((248,1099))
+    ret_acc, ret_errs_l, ret_errs_u = np.ones(248), np.ones(248), np.ones(248)
     run_list = [bottom_run, topbulk_run, topring_run]
 
     channel_lists = [channel_dict['bottom_channels'],
@@ -229,8 +230,7 @@ def acceptance_3runs(bottom_run, topbulk_run, topring_run, thresholds):
         frac, acc_errs, sys_errs, stat_errs = acceptance_fraction(run, thresholds)
         ret_acc[ch_list] = frac[ch_list]
         ret_errs_l[ch_list] = acc_errs[0][ch_list]
-        ret_errs_u[ch_list] = acc_errs[1][ch_list]
-        
+        ret_errs_u[ch_list] = acc_errs[1][ch_list]       
         
     ret_errs=[ret_errs_l, ret_errs_u]
     return ret_acc, ret_errs, sys_errs, stat_errs
@@ -334,7 +334,7 @@ def twoplus_contribution(occ):
     return 1 - np.exp(-occ)*(1+occ)
 
 
-def plot_acceptances(acceptances, output_file):
+def plot_acceptances(acceptances):
     # takes a list of acceptances, saves png to output_file
 
     pmtsizeArray = 700. * np.ones(len(acceptances))
@@ -344,7 +344,6 @@ def plot_acceptances(acceptances, output_file):
                        colorbar_kwargs=dict(label='spe acceptance fraction'),
                        scatter_kwargs=dict(vmin=0.5, vmax=1))
     plt.suptitle('SPE acceptance fraction', fontsize=20)
-    plt.savefig(output_file)
 
 
 def find_threshold(bin_centers, acceptance, acc_frac):

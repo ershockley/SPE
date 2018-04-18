@@ -178,7 +178,8 @@ def loop_over_events(LED_num, noise_num):
 #makes files group readable, writable, executable
 def change_permissions(filename):
     #change group of new file
-    shutil.chown(filename, group= 'pi-lgrandi')
+    os.system('chgrp pi-lgrandi %s' %filename)
+    #shutil.chown(filename, group= 'pi-lgrandi')
     #change permissions)
     os.system('chmod u+rw %s' %filename)
     os.system('chmod g+rw %s' %filename)

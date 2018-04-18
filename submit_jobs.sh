@@ -52,21 +52,17 @@ if [[ ! -e $tmp_dir/${noise_name} ]]; then
     cd xenon.opensciencegrid.org
     cd software
     cd rucio-py27
-    cd /cvmfs/oasis.opensciencegrid.org/osg/modules/python-2.7.7/bin/python
-    source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
     source /project/lgrandi/general_scripts/setup_rucio.sh
     mkdir $tmp_dir/${noise_name}
     chgrp pi-lgrandi $tmp_dir/${noise_name}
     echo "rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir"
     rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir
 
-elif [ -z "$(ls -A $tmp_dir/${noise_name})"]; then
+elif [[ -z "$(ls -A $tmp_dir/${noise_name})" ]]; then
     cd /cvmfs
     cd xenon.opensciencegrid.org
     cd software
     cd rucio-py27
-    cd /cvmfs/oasis.opensciencegrid.org/osg/modules/python-2.7.7/bin/python
-    source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
     source /project/lgrandi/general_scripts/setup_rucio.sh
     echo "rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir"
     rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir
@@ -100,9 +96,7 @@ if [[ ! -e $tmp_dir/$name ]]; then
     cd xenon.opensciencegrid.org
     cd software
     cd rucio-py27
-    cd /cvmfs/oasis.opensciencegrid.org/osg/modules/python-2.7.7/bin/python
     tmp_pypath=$PYTHONPATH
-    source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
     source /project/lgrandi/general_scripts/setup_rucio.sh
     mkdir $tmp_dir/$name
     chgrp pi-lgrandi $tmp_dir/$name
@@ -110,13 +104,11 @@ if [[ ! -e $tmp_dir/$name ]]; then
     rucio download $DID --dir $tmp_dir/$name --no-subdir
     export PYTHONPATH=$tmp_pypath
 
-elif [ -z "$(ls -A $tmp_dir/$name)"]; then
+elif [[ -z "$(ls -A $tmp_dir/$name)" ]]; then
     cd /cvmfs
     cd xenon.opensciencegrid.org
     cd software
     cd rucio-py27
-    cd /cvmfs/oasis.opensciencegrid.org/osg/modules/python-2.7.7/bin/python
-    source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
     source /project/lgrandi/general_scripts/setup_rucio.sh
     echo "rucio download $DID --dir $tmp_dir/$name --no-subdir"
     rucio download $DID --dir $tmp_dir/$name --no-subdir
