@@ -40,7 +40,7 @@ class SPE:
         self.occupancy_by_channel = (np.mean(occupancy_array, axis=1), np.std(occupancy_array, axis=1))
         self.off_channels = np.where(self.occupancy_by_channel[0] < 0.05)[0]
         systematics =  np.std(big_array, axis=2)
-        accs, statistical = self.acceptance(6)
+        accs, statistical = self.acceptance(val2corr2=6, space='amplitude', errors=True)
         self.acceptance_by_channel = accs, statistical, systematics
         
 
@@ -48,6 +48,8 @@ class SPE:
         if space not in ['amplitude', 'charge']:
             raise ValueError('must specify amplitude or charge')
         led = np.array(self.data['LED_%s' % space].copy())
+        #print('led shape: ', np.shape(led))
+        #print('led: ', led)
         noise = np.array(self.data['noise_%s' % space].copy())
         sigma_led=np.sqrt(led)
         sigma_noise=np.sqrt(noise)
@@ -68,20 +70,28 @@ class SPE:
         corrections, sigma_corr = self.make_correction(val2corr2, space)
         
         led = self.data['LED_%s' % space].copy()
+        
         noise = self.data['noise_%s' % space].copy()
+        
         sigma_led=np.sqrt(led)
+        #print('sig_led: ', sigma_led[0])
         sigma_noise=np.sqrt(noise)
+        #print('sig_noise: ',sigma_noise[0])
+        #print('noise: ', noise[0])
+        #print('corr: ', corrections)
+        #print('sig_cor: ', sigma_corr)
         corr_noise=noise * corrections
+        #print('corr_noise: ',corr_noise)
         sigma_corr_noise=corr_noise*np.sqrt( (sigma_corr/corrections)**2 + (sigma_noise/noise)**2)
         
         # return transpose so that is subscriptable by channel number
         res=(led - corr_noise).T
         sigma_res=np.sqrt( sigma_led**2 + sigma_corr_noise**2).T
        
-        return res, sigma_res
+        return res, sigma_res, led, noise
      
     def acceptance(self, val2corr2, space='amplitude', errors=True):
-        residual, residual_err = self.residual(val2corr2, space)
+        residual, residual_err, led, noise = self.residual(val2corr2, space)
         acc = A_func(residual)
         
         if errors:
@@ -123,23 +133,20 @@ def acc_MC(residual, sigma_res, total_curves):
     return new_acc
                                                                                                                                                             
 class ch_data:
-    def __init__(self, runlist, date, acc, on_acc, acc_errs_l, acc_errs_u, acc_sys, acc_stat, occ, on_occ, occ_sys, occ_stat):
+    def __init__(self, runlist, date, acc, acc_errs_l, acc_errs_u, acc_sys, acc_stat, occ, occ_sys, occ_stat, on_channels):
         self.runlist=runlist
         self.date=date
         
         #all of the following are subscriptable by channel
         self.acc=acc
-        self.on_acc=on_acc
         self.acc_errs_l=acc_errs_l
         self.acc_errs_u=acc_errs_u
         self.acc_sys=acc_sys
         self.acc_stat=acc_stat
         self.occ=occ
-        self.on_occ=on_occ
         self.occ_sys=occ_sys
         self.occ_stat=occ_stat
-        
-        #self._on_channels = np.where(self.occ > 0.05)[0]
+        self.on_channels = on_channels
         
         
 
@@ -178,7 +185,7 @@ def get_thresholds(run_number):
 
     return [thresholds.get(i, default_threshold) for i in np.arange(len(lookup_pmt))]
 
-def acceptance_fraction(run_number, thresholds):
+def acceptance_fraction(run_number, thresholds, val2corr2, space):
     path = os.path.join(data_dir_base, 'run_%05d.h5' % run_number)
     if not os.path.exists(path):
         print("Acceptance data does not exist for run %d" % run_number)
@@ -186,14 +193,15 @@ def acceptance_fraction(run_number, thresholds):
     thresholds = np.array(thresholds)[:248]
     bin0 = np.where(s.data['bin_centers'] == 0.5)[0][0]
 
-    acc, stat, sys = s.acceptance_by_channel
+    acc, stat = s.acceptance(val2corr2, space, errors=True)
+    acc2, stat2, sys = s.acceptance_by_channel
     index = np.arange(len(acc)), bin0+thresholds
     acc_frac = acc[index]
     stat_frac = np.absolute(acc_frac - np.array([stat[0, index[0], index[1]], stat[1, index[0], index[1]]]))
     sys_frac = sys[index] 
     return acc_frac, stat_frac, sys_frac
 
-def acceptance_3runs(bottom_run, topbulk_run, topring_run, thresholds):
+def acceptance_3runs(bottom_run, topbulk_run, topring_run, thresholds, val2corr2, space):
     thresholds = np.array(thresholds)[:248]
     ret_acc, ret_stat_errs, ret_sys_errs = np.ones(248), np.ones((2, 248)), np.ones(248)
     run_list = [bottom_run, topbulk_run, topring_run]
@@ -203,14 +211,14 @@ def acceptance_3runs(bottom_run, topbulk_run, topring_run, thresholds):
                      channel_dict['top_outer_ring']]
 
     for run, ch_list in zip(run_list, channel_lists):
-        frac,  stat_errs, sys_errs = acceptance_fraction(run, thresholds)
+        frac,  stat_errs, sys_errs = acceptance_fraction(run, thresholds, val2corr2, space)
         ret_acc[ch_list] = frac[ch_list]
         ret_stat_errs[:, ch_list] = stat_errs[:, ch_list]
         ret_sys_errs[ch_list] = sys_errs[ch_list]
         
     return ret_acc, ret_stat_errs, ret_sys_errs
     
-def acceptance_curve_3runs(bottom_run, topbulk_run, topring_run):
+def acceptance_curve_3runs(bottom_run, topbulk_run, topring_run, val2corr2, space):
     ret_acc, ret_errs= np.ones((248, 1099)), np.ones((248, 1099))
     run_list = [bottom_run, topbulk_run, topring_run]
     channel_lists = [channel_dict['bottom_channels'],
@@ -220,7 +228,7 @@ def acceptance_curve_3runs(bottom_run, topbulk_run, topring_run):
         path = os.path.join(data_dir_base, 'run_%05d.h5' % run)
         if not os.path.exists(path):
             print("Acceptance data does not exist for run %d" % run)
-        s = SPE(path)
+        s = SPE(path, val2corr2, space)
         frac, errs = s.acceptance_by_channel
         ret_acc[ch_list,:] = frac[ch_list,:]
         ret_errs[ch_list,:] = errs[ch_list,:]
@@ -229,24 +237,25 @@ def acceptance_curve_3runs(bottom_run, topbulk_run, topring_run):
     return x, ret_acc , ret_errs
 
 #add stats errors to occ, use log of corr
-def occupancy(run_number):
+def occupancy(run_number, val2corr2, space):
     path = os.path.join(data_dir_base, 'run_%05d.h5' % run_number)
     if not os.path.exists(path):
         print("Acceptance data does not exist for run %d" % run_number)
     s = SPE(path)
     occ, occ_sys=s.occupancy_by_channel
-    corr, sigma_corr=s.make_correction(val2corr2=6, space='amplitude')
+    corr, sigma_corr=s.make_correction(val2corr2, space)
+    print('sc: ', sigma_corr)
     occ_stat=-np.log(sigma_corr)
     return occ, occ_sys, occ_stat
 
-def occupancy_3runs(bottom_run, topbulk_run, topring_run):
+def occupancy_3runs(bottom_run, topbulk_run, topring_run, val2corr2, space):
     ret_occ, ret_sys_errs, ret_stat_errs = np.ones(248), np.ones(248), np.ones(248)
     run_list = [bottom_run, topbulk_run, topring_run]
     channel_lists = [channel_dict['bottom_channels'],
                      channel_dict['top_bulk'],
                      channel_dict['top_outer_ring']]
     for run, ch_list in zip(run_list, channel_lists):
-        occ, occ_sys, occ_stat = occupancy(run)
+        occ, occ_sys, occ_stat = occupancy(run, val2corr2, space)
         ret_occ[ch_list] = occ[ch_list]
         ret_sys_errs[ch_list] = occ_sys[ch_list]
         ret_stat_errs[ch_list] = occ_stat[ch_list]

@@ -27,7 +27,7 @@ echo "LED runs: $LED_runs"
 tmp_dir="/project/lgrandi/xenon1t/spe_acceptance/rawdata"
 
 # env stuff
-source activate pax_dev
+source activate pax_v6.8.0
 export PYTHONPATH=/project/lgrandi/anaconda3/envs/pax_v6.8.0/bin/python$PYTHONPATH
 noise_DID=$( python get_rucio_did.py $noise_run)
 noise_name=$( python get_name.py $noise_run)
@@ -49,11 +49,6 @@ export PATH=/project/lgrandi/anaconda3/bin:\$PATH
 source activate pax_v6.8.0
 
 if [[ ! -e $tmp_dir/${noise_name} ]]; then
-    cd /cvmfs
-    cd xenon.opensciencegrid.org
-    cd software
-    cd rucio-py27
-    cd /cvmfs/oasis.opensciencegrid.org/osg/modules/python-2.7.7/bin/python
     source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
     source /project/lgrandi/general_scripts/setup_rucio.sh
     mkdir $tmp_dir/${noise_name}
