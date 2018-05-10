@@ -244,7 +244,6 @@ def occupancy(run_number, val2corr2, space):
     s = SPE(path)
     occ, occ_sys=s.occupancy_by_channel
     corr, sigma_corr=s.make_correction(val2corr2, space)
-    print('sc: ', sigma_corr)
     occ_stat=-np.log(sigma_corr)
     return occ, occ_sys, occ_stat
 
