@@ -23,8 +23,8 @@ echo "noise run: $noise_run"
 echo "LED runs: $LED_runs"
 
 #where we will save the raw data
-#tmp_dir="~/SPE/SPE/rawdata_test"
-tmp_dir="/project/lgrandi/xenon1t/spe_acceptance/rawdata"
+tmp_dir="/scratch/midway2/ershockley/rawdata/SPE"
+#tmp_dir="/project/lgrandi/xenon1t/spe_acceptance/rawdata"
 
 # env stuff
 source activate pax_dev
@@ -68,7 +68,8 @@ for run in $LED_runs; do
     padded_run=$(printf "%05d" $run)
     #need to change this next line to $/project/lgrandi/data/run_${padded_run}.h5?
     if [[ -e $/project/lgrandi/xenon1t/spe_acceptance/data/run_${padded_run}.h5 ]]; then
-	continue
+	echo "data exists"
+	#continue
     fi
     DID=$(python get_rucio_did.py $run)
     name=$(python get_name.py $run)
