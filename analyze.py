@@ -21,7 +21,7 @@ class SPE:
         for key in ['LED_amplitude', 'LED_charge', 'noise_amplitude', 'noise_charge']:
             data[key] = np.array(list(df[key].values))
         self.data = data.copy()
-
+        #print(self.data)
         # numpy magic
         val_to_check = [4, 5, 6, 7, 8, 9, 10]
         big_array = np.ones((248, len(data['bin_centers']), len(val_to_check)))
