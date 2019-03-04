@@ -1,6 +1,7 @@
 import pymongo
 import os
 import sys
+import datetime
 
 uri = 'mongodb://eb:%s@xenon1t-daq.lngs.infn.it:27017,copslx50.fysik.su.se:27017,zenigata.uchicago.edu:27017/run'
 uri = uri % os.environ.get('MONGO_PASSWORD')
@@ -13,9 +14,9 @@ collection = db['runs_new']
 def write_spe_lists(write = False):
     query = {"detector":"tpc", 
              "source.type" : "LED",
-#             "tags" : {"$exists" : True},
              "comments": {"$exists" : True},
-             "$and" : [{"number" : {"$gt" : 0}}, {"number" : {"$lt" : 11400}}]
+             "number" : {"$gt" : 6731},
+             "tags" : {"$exists" : True}
             }
     
     cursor = collection.find(query, {"number" : True,
@@ -25,6 +26,8 @@ def write_spe_lists(write = False):
                                      "trigger.events_built" : True,
                                      "_id":False})
     cursor = list(cursor)
+    
+    print(len(cursor))
 
     if not write:
         print("cursor has %d runs" % len(cursor))
@@ -40,35 +43,28 @@ def write_spe_lists(write = False):
 
     # this is an absolute mess, but tries to figure out which runs are which configuration
     for run in cursor:
-        if 'tags' in run:
-            if any(["bad" in t["name"] for t in run["tags"]]):
-                continue
+        if any(["bad" in t["name"] for t in run["tags"]]):
+            continue
+        
         # make sure we're only considering the long LED runs 
         if "events_built" not in run["trigger"] or run["trigger"]["events_built"] < 100000:
             continue
-        
-        if any(["Gain step_4" in com["text"] or "SPE acceptance step_0" in com["text"] or "LED calibration step 4" in com["text"]
-                or "LED calibration, step 4" in com["text"] or "LED Calibration step 4" in com["text"]
-                or "LED Calibration: step 4" in com['text'] or "LED Gain Calibration step4" in com['text']
-                or "http://wims.univ-savoie.fr/wims/" in com['text'] or "PMT_callibration_step_4" in com["text"]
-                or "#gain_step4" in com['text']
-                or "LED calibration: step 4" in com['text']
-                for com in run["comments"]]):
-            spe_blank.append(run["number"])
-            
-        if any(["SPE" in com["text"] for com in run["comments"]]):
-                
-            if any(["topbulk" in com["text"] or "step_2" in com["text"] or "step 2" in com["text"]  or "3.7, 3.7, 3.8" in com["text"] for com in run["comments"]]):
+
+        if run['tags'][0]['name'] == 'gain_step4':
+                spe_blank.append(run["number"])
+                            
+        elif run['tags'][0]['name']=='spe_topbulk':
                 spe_topbulk.append(run["number"])
                     
-            if any(["topring" in com["text"] or "step_3" in com["text"] or "step 3" in com["text"] or "3.84, 3.84, 3.94" in com["text"] or "topouter" in com['text'] or "TopRing" in com['text'] for com in run["comments"]]):
+        elif run['tags'][0]['name']=='spe_topring':
                 spe_topring.append(run["number"])
                     
-            if any(["bottom" in com["text"] or "step_1" in com["text"] or "step 1" in com["text"] or "3.6, 3.6, 3.7" in com["text"] for com in run["comments"]]):
+        elif run['tags'][0]['name']=='spe_bottom':
                 spe_bottom.append(run["number"])
             
-            spe_runs.append(run["number"])
-
+        spe_runs.append(run["number"])
+    
+    
     for L in [spe_blank, spe_bottom, spe_topbulk, spe_topring]:
         remove_list = []
         for run in L:
@@ -104,7 +100,7 @@ def write_spe_lists(write = False):
 
 
     wrote = []
-    for blank, bot, bulk, ring in zip(spe_blank, spe_bottom, spe_topbulk, spe_topring):
+    for blank, bot, bulk, ring in zip(spe_blank, spe_bottom, spe_topbulk, sorted(spe_topring, reverse=True)):
         if not all([abs(blank - run) < 10 for run in [bot, bulk, ring] ]):
             continue
         filename = "./runlists/runlist_%i_%i_%i.txt" % (bot, bulk, ring)
@@ -122,12 +118,6 @@ def write_spe_lists(write = False):
     if write:
         return wrote
 
-    for file, runlist in zip(['spe_blank.txt', 'spe_bottom.txt', 'spe_topbulk.txt', 'spe_topring.txt'],
-                             [spe_blank, spe_bottom, spe_topbulk, spe_topring]):
-        with open(file, "w") as f:
-            for run in runlist:
-                f.write("%d\n" % run)
-
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         print("writing these runs to files")
@@ -137,4 +127,28 @@ if __name__ == '__main__':
         write = False
     write_spe_lists(write)
 
+def get_dates(bottom_runs):
+    query = {"detector": "tpc",
+             "source.type": "LED",
+             "comments": {"$exists": True},
+             "number": {"$gt": 5038},
+             "tags": {"$exists": True}
+             }
 
+    cursor = collection.find(query, {"number": True,
+                                     "data": True,
+                                     "comments": True,
+                                     "tags": True,
+                                     "trigger.events_built": True,
+                                     "_id": False})
+    cursor = list(cursor)
+
+    datedict={}
+
+    for run in cursor:
+        if run["number"] in bottom_runs:
+            datedict[run["number"]]=run["comments"][0]["date"]
+            #rundate=datetime.datetime.strftime(run["tags"][0]["date"], '%x')
+            #datedict[run["number"]]=datetime.datetime.strptime(rundate, '%x')
+
+    return datedict
