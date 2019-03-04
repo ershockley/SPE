@@ -60,31 +60,6 @@ def loop_over_events(LED_num, noise_num):
     LED_file = os.path.join(rawdata_dir, get_name(LED_num))
     noise_file = os.path.join(rawdata_dir, get_name(noise_num))
 
-    # make sure there are files in the dir - if not then remove it
-
-    nfiles = len(os.listdir(LED_file))
-    if nfiles < 100:
-        print("Not enough data in %s. Removing" % LED_file)
-        shutil.rmtree(LED_file)
-        # now download again
-#        download_raw_files(LED_num, rawdir=rawdata_dir, rse='UC_OSG_USERDISK')
-
-
-    nfiles = len(os.listdir(noise_file))
-    if nfiles < 100:
-        print("Not enough data in %s. Removing" % noise_file)
-        shutil.rmtree(noise_file)
-#        download_raw_files(noise_num, rawdir=rawdata_dir, rse='UC_OSG_USERDISK')
-
-    # noise_multihist = multihist.Histdd(axis_names=['channel', 'amplitude', 'charge'],
-    #                                   bins=(np.arange(-1, n_channels + 1),
-    #                                         np.arange(*amplitude_bounds),
-    #                                        np.arange(*amplitude_bounds)))
-    # LED_multihist = multihist.Histdd(axis_names=['channel', 'amplitude', 'charge'],
-    #                                 bins=(np.arange(-1, n_channels + 1),
-    #                                 np.arange(*amplitude_bounds),
-    #                                 np.arange(*amplitude_bounds)))
-
     LED_run = get_run(LED_file)
     noise_run = get_run(noise_file)
 
@@ -94,7 +69,7 @@ def loop_over_events(LED_num, noise_num):
     noise_event_generator = get_events(noise_run)
     LED_event_generator = get_events(LED_run)
 
-    n_loop_events = 150000 #min(LED_events-1, noise_events-1)
+    n_loop_events = min(LED_events-1, noise_events-1)
 
     amplitude_bounds = (-100, 1000)
     n_channels = 254

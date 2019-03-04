@@ -28,7 +28,7 @@ tmp_dir="/scratch/midway2/ershockley/rawdata/SPE"
 
 # env stuff
 source activate pax_v6.8.0
-export PYTHONPATH=/project/lgrandi/anaconda3/envs/pax_v6.8.0/bin/python$PYTHONPATH
+#export PYTHONPATH=/project/lgrandi/anaconda3/envs/pax_v6.8.0/bin/python$PYTHONPATH
 noise_DID=$( python get_rucio_did.py $noise_run)
 noise_name=$( python get_name.py $noise_run)
 
@@ -41,20 +41,33 @@ cat <<EOF > $noise_sbatch
 #SBATCH --output=${PWD}/logs/run_${noise_run}.log
 #SBATCH --error=${PWD}/logs/run_${noise_run}.log
 #SBATCH --account=pi-lgrandi
-#SBATCH --qos=xenon1t
-#SBATCH --partition=xenon1t
+#SBATCH --qos=dali
+#SBATCH --partition=dali
 
-/home/ershockley/cvmfs_cache_issue.sh
 export PATH=/project/lgrandi/anaconda3/bin:\$PATH
 source activate pax_v6.8.0
 
+
 if [[ ! -e $tmp_dir/${noise_name} ]]; then
+    source deactivate
+    source /cvmfs/oasis.opensciencegrid.org/osg-software/osg-wn-client/3.3/current/el7-x86_64/setup.sh
     source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
     source /project/lgrandi/general_scripts/setup_rucio.sh
     mkdir $tmp_dir/${noise_name}
     chgrp pi-lgrandi $tmp_dir/${noise_name}
     echo "rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir"
     rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir
+else
+    if [[ -z "\$(ls $tmp_dir/${noise_name})" ]]; then
+        source deactivate
+        source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
+        source /cvmfs/oasis.opensciencegrid.org/osg-software/osg-wn-client/3.3/current/el7-x86_64/setup.sh
+        source /project/lgrandi/general_scripts/setup_rucio.sh
+        mkdir $tmp_dir/${noise_name}
+        chgrp pi-lgrandi $tmp_dir/${noise_name}
+        echo "rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir"
+        rucio download $noise_DID --dir $tmp_dir/${noise_name} --no-subdir
+    fi
 fi
 EOF
 
@@ -62,12 +75,17 @@ EOF
 for run in $LED_runs; do
     padded_run=$(printf "%05d" $run)
     #need to change this next line to $/project/lgrandi/data/run_${padded_run}.h5?
-    if [[ -e $/project/lgrandi/xenon1t/spe_acceptance/data/run_${padded_run}.h5 ]]; then
-	echo "data exists"
-	#continue
+    if [[ -e /project/lgrandi/xenon1t/spe_acceptance/data/run_${padded_run}.h5 ]]; then
+	    echo "data exists"
+	    continue
     fi
     DID=$(python get_rucio_did.py $run)
     name=$(python get_name.py $run)
+    rse=$(python get_rse.py $run)
+
+    if [[ -n "$rse" ]]; then
+        rse="--rse $rse"
+    fi
     sbatch_script=$PWD/sbatch_scripts/$run.sbatch
     cat <<EOF > $sbatch_script
 #!/bin/bash
@@ -75,25 +93,31 @@ for run in $LED_runs; do
 #SBATCH --output=${PWD}/logs/run_${run}.log
 #SBATCH --error=${PWD}/logs/run_${run}.log
 #SBATCH --account=pi-lgrandi
-#SBATCH --qos=xenon1t
-#SBATCH --partition=xenon1t
-#SBATCH --mem=25GB
+#SBATCH --qos=dali
+#SBATCH --partition=dali
+#SBATCH --mem=24GB
 
-/home/ershockley/cvmfs_cache_issue.sh
+#/home/ershockley/cvmfs_cache_issue.sh
 export PATH=/project/lgrandi/anaconda3/bin:\$PATH
 
 if [[ ! -e $tmp_dir/$name ]]; then
     tmp_pypath=$PYTHONPATH
-    source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
+    #source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
     source /project/lgrandi/general_scripts/setup_rucio.sh
     mkdir $tmp_dir/$name
     chgrp pi-lgrandi $tmp_dir/$name
     echo "rucio download $DID --dir $tmp_dir/$name --no-subdir"
     rucio download $DID --dir $tmp_dir/$name --no-subdir
     export PYTHONPATH=$tmp_pypath
-
+else
+    if [[ -z "\$(ls $tmp_dir/${name})" ]]; then
+        #source /cvmfs/xenon.opensciencegrid.org/software/rucio-py27/setup_rucio_1_8_3.sh
+        source /project/lgrandi/general_scripts/setup_rucio.sh
+        echo "rucio download $DID --dir $tmp_dir/${name} --no-subdir"
+        rucio download $DID --dir $tmp_dir/${name} --no-subdir
+    fi
 fi
-source activate pax_dev
+source activate pax_v6.8.0 # pax_dev
 
 echo "python $workdir/spe_acceptance.py $run $noise_run"
 python $workdir/spe_acceptance.py $run $noise_run

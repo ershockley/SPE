@@ -9,7 +9,7 @@ import pandas as pd
 import os
 import runDB
 
-data_dir_base = "./data/"
+data_dir_base = "/project/lgrandi/xenon1t/spe_acceptance/data/"
 
 hax.init()
 
@@ -23,7 +23,7 @@ class SPE:
         self.data = data.copy()
         #print(self.data)
         # numpy magic
-        val_to_check = [4, 5, 6, 7, 8, 9, 10]
+        val_to_check = [5, 6, 7, 8]
         big_array = np.ones((248, len(data['bin_centers']), len(val_to_check)))
         occupancy_array = np.ones((248, len(val_to_check)))
         for i, val in enumerate(val_to_check):
@@ -67,7 +67,42 @@ class SPE:
 
 
 
+class SPECalibration:
+    def __init__(self, runlist):
+        self.bottom_run = runlist[0]
+        self.topbulk_run = runlist[1]
+        self.topring_run = runlist[2]
+
+        self.bottom_cal = SPE(get_path(runlist[0]))
+        self.topbulk_cal = SPE(get_path(runlist[1]))
+        self.topring_cal = SPE(get_path(runlist[2]))
+
+        self.thresholds = get_thresholds(find_regular_run(runlist[0]))
+
+        self.occ, self.occ_errs = occupancy_3runs(*runlist)
+        self.acc, self.acc_errs  = acceptance_3runs(*runlist, thresholds=self.thresholds)
+
+    @property
+    def off_channels(self):
+        return np.where(self.occ < 0.05)[0]
+
+    def get_cal(self, ch):
+        if ch in channel_dict['bottom_channels']:
+            return self.bottom_cal
+        elif ch in channel_dict['top_bulk']:
+            return self.topbulk_cal
+        elif ch in channel_dict['top_outer_ring']:
+            return self.topring_cal
+        else:
+            raise ValueError("Ch %d not in channel_dict" % ch)
+
+
+
 ############################################################################################
+
+def get_path(run_number):
+    return os.path.join(data_dir_base, 'run_%05d.h5' % run_number)
+
 
 def get_thresholds(run_number):
     # thanks Jelle
