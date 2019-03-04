@@ -15,7 +15,7 @@ def write_spe_lists(write = False):
              "source.type" : "LED",
 #             "tags" : {"$exists" : True},
              "comments": {"$exists" : True},
-             "$and" : [{"number" : {"$gt" : 6731}}, {"number" : {"$lt" : 12000}}]
+             "$and" : [{"number" : {"$gt" : 0}}, {"number" : {"$lt" : 11400}}]
             }
     
     cursor = collection.find(query, {"number" : True,
@@ -121,6 +121,12 @@ def write_spe_lists(write = False):
             
     if write:
         return wrote
+
+    for file, runlist in zip(['spe_blank.txt', 'spe_bottom.txt', 'spe_topbulk.txt', 'spe_topring.txt'],
+                             [spe_blank, spe_bottom, spe_topbulk, spe_topring]):
+        with open(file, "w") as f:
+            for run in runlist:
+                f.write("%d\n" % run)
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:

@@ -19,12 +19,14 @@ import sys
 import os
 import scipy.integrate as integrate
 from runDB import get_name
+#from myRucio import download_raw_files
 import stat
 import shutil
+import pickle
 
 # loop over LED and noise runs, fill histograms
-rawdata_dir = '/project/lgrandi/xenon1t/spe_acceptance/rawdata'
-
+#rawdata_dir = '/project/lgrandi/xenon1t/spe_acceptance/rawdata'
+rawdata_dir = '/scratch/midway2/ershockley/rawdata/SPE'
 #where processed data will go
 
 data_dir_base = '/project/lgrandi/xenon1t/spe_acceptance/data'
@@ -57,15 +59,6 @@ def loop_over_events(LED_num, noise_num):
 
     LED_file = os.path.join(rawdata_dir, get_name(LED_num))
     noise_file = os.path.join(rawdata_dir, get_name(noise_num))
-
-    # noise_multihist = multihist.Histdd(axis_names=['channel', 'amplitude', 'charge'],
-    #                                   bins=(np.arange(-1, n_channels + 1),
-    #                                         np.arange(*amplitude_bounds),
-    #                                        np.arange(*amplitude_bounds)))
-    # LED_multihist = multihist.Histdd(axis_names=['channel', 'amplitude', 'charge'],
-    #                                 bins=(np.arange(-1, n_channels + 1),
-    #                                 np.arange(*amplitude_bounds),
-    #                                 np.arange(*amplitude_bounds)))
 
     LED_run = get_run(LED_file)
     noise_run = get_run(noise_file)
@@ -106,6 +99,12 @@ def loop_over_events(LED_num, noise_num):
     led_array = [[], [], []]
     noise_array = [[], [], []]
 
+    
+    noise_amplitude = []
+    noise_charge = []
+    led_amplitude = []
+    led_charge = []
+    
     for event_i in tqdm(range(n_loop_events - 1)):
         for run in runs:
             if run == 'noise':
@@ -150,11 +149,16 @@ def loop_over_events(LED_num, noise_num):
                 noise_array[0].extend(channel_list)
                 noise_array[1].extend(amplitude_list)
                 noise_array[2].extend(charge_list)
+                #noise_amplitude.append(amplitude_list)
+                #noise_charge.append(charge_list)
             else:
                 # LED_multihist.add(channel_list, amplitude_list, charge_list)
                 led_array[0].extend(channel_list)
                 led_array[1].extend(amplitude_list)
                 led_array[2].extend(charge_list)
+                #led_amplitude.append(amplitude_list)
+                #led_charge.append(charge_list)
+        
 
     print("noise: %d proper events seen in %d events" % (noise_good_events_seen, n_loop_events))
     print("LED: %d proper events seen in %d events" % (LED_good_events_seen, n_loop_events))
@@ -170,15 +174,23 @@ def loop_over_events(LED_num, noise_num):
                                        bins=(np.arange(-1, n_channels + 1),
                                              np.arange(*amplitude_bounds),
                                              np.arange(*amplitude_bounds)))
+
+
+    #df = pd.DataFrame({'noise_amplitude': noise_amplitude,
+    #                   'noise_charge': noise_charge,
+    #                   'led_amplitude': led_amplitude,
+    #                   'led_charge': led_charge})
+
     # return led_array, noise_array
-    del noise_array
-    del led_array
+    #del noise_array
+    #del led_array
+    #df.to_hdf('update_run%d.hdf' % LED_num, 'data')
     return LED_multihist, noise_multihist
 
 #makes files group readable, writable, executable
 def change_permissions(filename):
     #change group of new file
-    shutil.chown(filename, group= 'pi-lgrandi')
+    shutil.chown(filename, group='pi-lgrandi')
     #change permissions)
     os.system('chmod u+rw %s' %filename)
     os.system('chmod g+rw %s' %filename)
@@ -189,7 +201,7 @@ def write_to_file(filename, LED_multihist, noise_multihist):
     LED_charges = []
     noise_amplitudes = []
     noise_charges = []
-    for ch in range(248):
+    for ch in tqdm(range(248)):
         LED_amplitudes.append(LED_multihist.slice(ch, ch, 'channel').project('amplitude').histogram)
         LED_charges.append(LED_multihist.slice(ch, ch, 'channel').project('charge').histogram)
         noise_amplitudes.append(noise_multihist.slice(ch, ch, 'channel').project('amplitude').histogram)
@@ -224,10 +236,12 @@ def main(args):
     print("noise run: %d" % (noise_run_number))
 
     # PROCESS THE DATA
+    #loop_over_events(LED_run_number, noise_run_number)
     LED_hist, noise_hist = loop_over_events(LED_run_number, noise_run_number)
 
     # write to file
     filename = 'run_%05d.h5' % LED_run_number
+    filename = os.path.join(data_dir_base, filename)
     write_to_file(filename, LED_hist, noise_hist)
 
 
