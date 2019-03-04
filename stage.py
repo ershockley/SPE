@@ -40,7 +40,7 @@ def make_rucio_command(run, path, sleep=60):
     
     if "UC_OSG_USERDISK" in rses:
         rse = "--rse UC_OSG_USERDISK"
-    if "NIKHEF_USERDISK" in rses:
+    elif "NIKHEF_USERDISK" in rses:
         rse = "--rse NIKHEF_USERDISK"
     elif "SURFSARA_USERDISK" in rses:
         rse = "--rse SURFSARA_USERDISK"

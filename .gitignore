@@ -9,3 +9,6 @@ logs
 data
 plots
 runlists
+time_plots_per_channel
+npzs
+andy_notebooks
